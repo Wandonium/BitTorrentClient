@@ -25,15 +25,15 @@ for(let i = 0; i < announceList.length; i++) {
 		});
 	}
 }*/
-/*if(torrent.info.files === undefined) {
+if(torrent.info.files === undefined) {
 	download(torrent, torrent.info.name.toString());
 } else {
 	const files = Object.keys(torrent.info.files).map(key => torrent.info.files[key]);
 	for(let i = 0; i < files.length; i++) {
 		download(torrent, files[i].path.toString());
 	}
-}*/
+}
 //console.log(torrent.info.files[0].path.toString());
 // console.log(torrent.info.files);
 
-download(torrent, torrent.info.name.toString());
+//download(torrent, torrent.info.name);

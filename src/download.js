@@ -44,12 +44,11 @@ function download(peer, torrent, pieces, file) {
 		socket.write(message.buildHandshake(torrent));
 	});
 	const queue = new Queue(torrent);
-	console.log('oWM',onWholeMsg(socket, msg => msgHandler(msg, socket, pieces, queue, torrent, file)));
+	onWholeMsg(socket, msg => msgHandler(msg, socket, pieces, queue, torrent, file));
 }
 function onWholeMsg(socket, callback) {
 	let savedBuf = Buffer.alloc(0);	// create buffer of size 0
 	let handshake = true;
-	let done = false;
 
 	socket.on('data', recvBuf => {
 		// msgLen calculates the length of a whole message
@@ -64,16 +63,11 @@ function onWholeMsg(socket, callback) {
 		savedBuf = Buffer.concat([savedBuf, recvBuf]);
 
 		while (savedBuf.length >= 4 && savedBuf.length >= msgLen()) {
-			done = callback(savedBuf.slice(0, msgLen()));
-			//console.log('Done? ', done);
+			callback(savedBuf.slice(0, msgLen()));
 			savedBuf = savedBuf.slice(msgLen());
 			handshake = false;
-			if(!done){
-				break;
-			}
 		}
 	});
-	return done;
 }
 function msgHandler(msg, socket, pieces, queue, torrent, file) {
 	if(isHandshake(msg)) {
@@ -83,11 +77,11 @@ function msgHandler(msg, socket, pieces, queue, torrent, file) {
 		const m = message.parse(msg);
 		//console.log("Message ID: " + m.id);
 
-		if (m.id === 0) return chokeHandler(socket);
-		if (m.id === 1) return unchokeHandler(socket, pieces, queue);
-		if (m.id === 4) return haveHandler(socket, pieces, queue, m.payload);
-		if (m.id === 5) return bitfieldHandler(socket, pieces, queue, m.payload);
-		if (m.id === 7) return pieceHandler(socket, pieces, queue, torrent, file, m.payload);
+		if (m.id === 0) chokeHandler(socket);
+		if (m.id === 1) unchokeHandler(socket, pieces, queue);
+		if (m.id === 4) haveHandler(socket, pieces, queue, m.payload);
+		if (m.id === 5) bitfieldHandler(socket, pieces, queue, m.payload);
+		if (m.id === 7) pieceHandler(socket, pieces, queue, torrent, file, m.payload);
 	}
 }
 
@@ -99,14 +93,12 @@ function isHandshake(msg) {
 function chokeHandler(socket) {
 	//console.log("Request choked by peer!");
 	socket.end();
-	return false;
 }
 
 function unchokeHandler(socket, pieces, queue) {
 	queue.choked = false;
 	//console.log("Request unchoked by peer, downloading next piece...");
 	requestPiece(socket, pieces, queue);
-	return false;
 }
 
 function haveHandler(socket, pieces, queue, payload) {
@@ -116,7 +108,6 @@ function haveHandler(socket, pieces, queue, payload) {
 	if (queueEmpty) {
 		requestPiece(socket, pieces, queue);
 	}
-	return false;
 }
 
 function bitfieldHandler(socket, pieces, queue, payload) {
@@ -128,12 +119,10 @@ function bitfieldHandler(socket, pieces, queue, payload) {
 		}
 	});
 	if(queueEmpty) requestPiece(socket, pieces, queue);
-	return false;
 }
 
 function pieceHandler(socket, pieces, queue, torrent, file, piecesResp) {
 	//console.log("Received piece/block from peer...");
-	let done = false;
 	pieces.printPercentDone();
 	pieces.addReceived(piecesResp);
 
@@ -144,7 +133,6 @@ function pieceHandler(socket, pieces, queue, torrent, file, piecesResp) {
 	});
 
 	if(pieces.isDone()) {
-		done = true;
 		console.log();		
 		console.log('DONE!!!!');
 		//console.log('Writing data to file...');
@@ -154,10 +142,8 @@ function pieceHandler(socket, pieces, queue, torrent, file, piecesResp) {
 				//console.log('Data written to file: ', filePath);
 			});
 		} catch(e) {}
-		return done;
 	} else {
-		requestPiece(socket, pieces, queue);
-		return done;
+		 requestPiece(socket, pieces, queue);
 	}
 }
 function requestPiece(socket, pieces, queue) {
