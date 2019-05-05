@@ -3,7 +3,7 @@
 const tp = require('./torrent-parser');
 
 module.exports = class {
-	constructor(torrent) {
+	constructor(torrent, counter) {
 		function buildPiecesArray() {
 			const nPieces = torrent.info.pieces.length / 20;
 			const arr = new Array(nPieces).fill(null);
